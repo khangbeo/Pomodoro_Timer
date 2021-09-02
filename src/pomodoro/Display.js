@@ -50,19 +50,23 @@ export default function Display({
   session,
   setSession,
 }) {
+  let { focusDuration,
+        breakDuration,
+        sessionActive, } = activeState
+  let { label, timeRemaining } = session
   const progress =
     100 *
     (1 -
-      session.timeRemaining /
-        (session.label === 'Focusing'
-          ? activeState.focusDuration * 60
-          : activeState.breakDuration * 60))
+      timeRemaining /
+        (label === 'Focusing'
+          ? focusDuration * 60
+          : breakDuration * 60))
   useInterval(
     () => {
-      if (session.timeRemaining === 0) {
+      if (timeRemaining === 0) {
         new Audio('https://bigsoundbank.com/UPLOAD/mp3/1482.mp3').play()
         return setSession(
-          nextSession(activeState.focusDuration, activeState.breakDuration),
+          nextSession(focusDuration, breakDuration),
         )
       }
       return setSession(nextTick)
@@ -71,20 +75,20 @@ export default function Display({
   )
   return (
     <div>
-      {activeState.sessionActive && (
+      {sessionActive && (
         <>
           <div className="row mb-2">
             <div className="col">
               <h2 data-testid="session-title">
-                {session.label} for{' '}
-                {session.label === 'Focusing'
-                  ? minutesToDuration(activeState.focusDuration)
-                  : minutesToDuration(activeState.breakDuration)}{' '}
+                {label} for{' '}
+                {label === 'Focusing'
+                  ? minutesToDuration(focusDuration)
+                  : minutesToDuration(breakDuration)}{' '}
                 minutes
               </h2>
 
               <p className="lead" data-testid="session-sub-title">
-                {secondsToDuration(session.timeRemaining)} remaining
+                {secondsToDuration(timeRemaining)} remaining
               </p>
               {!isTimerRunning && <h2>Paused</h2>}
             </div>

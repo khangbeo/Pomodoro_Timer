@@ -6,40 +6,41 @@ export default function ChangeDuration({
   setActiveState,
   isTimerRunning,
 }) {
+  let { focusDuration, breakDuration } = activeState
   const addFocus = () => {
     setActiveState({
       ...activeState,
       focusDuration:
-        activeState.focusDuration < 60
-          ? activeState.focusDuration + 5
-          : activeState.focusDuration,
+        focusDuration < 60
+          ? focusDuration + 5
+          : focusDuration,
     })
   }
   const minusFocus = () => {
     setActiveState({
       ...activeState,
       focusDuration:
-        activeState.focusDuration > 5
-          ? activeState.focusDuration - 5
-          : activeState.focusDuration,
+        focusDuration > 5
+          ? focusDuration - 5
+          : focusDuration,
     })
   }
   function addBreak() {
     setActiveState({
       ...activeState,
       breakDuration:
-        activeState.breakDuration < 15
-          ? activeState.breakDuration + 1
-          : activeState.breakDuration,
+        breakDuration < 15
+          ? breakDuration + 1
+          : breakDuration,
     })
   }
   function reduceBreak() {
     setActiveState({
       ...activeState,
       breakDuration:
-        activeState.breakDuration > 1
-          ? activeState.breakDuration - 1
-          : activeState.breakDuration,
+        breakDuration > 1
+          ? breakDuration - 1
+          : breakDuration,
     })
   }
   return (
@@ -47,7 +48,7 @@ export default function ChangeDuration({
       <div className="col">
         <div className="input-group input-group-lg mb-2">
           <span className="input-group-text" data-testid="duration-focus">
-            Focus Duration: {minutesToDuration(activeState.focusDuration)}
+            Focus Duration: {minutesToDuration(focusDuration)}
           </span>
           <div className="input-group-append">
             <button
@@ -75,7 +76,7 @@ export default function ChangeDuration({
         <div className="float-right">
           <div className="input-group input-group-lg mb-2">
             <span className="input-group-text" data-testid="duration-break">
-              Break Duration: {minutesToDuration(activeState.breakDuration)}
+              Break Duration: {minutesToDuration(breakDuration)}
             </span>
             <div className="input-group-append">
               <button

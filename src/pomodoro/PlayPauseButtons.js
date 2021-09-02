@@ -7,6 +7,7 @@ export default function PlayPauseButtons({
   activeState,
   isTimerRunning,
 }) {
+  let { sessionActive } = activeState
   return (
     <div className="row">
       <div className="col">
@@ -37,7 +38,7 @@ export default function PlayPauseButtons({
             data-testid="stop"
             title="Stop the session"
             onClick={stop}
-            disabled={!activeState.sessionActive}
+            disabled={!sessionActive}
           >
             <span className="oi oi-media-stop" />
           </button>
