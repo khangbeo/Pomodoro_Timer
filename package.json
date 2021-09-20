@@ -14,10 +14,8 @@
     "prebuild": "env CI=true react-scripts test --colors",
     "build": "react-scripts build",
     "predeploy": "npm run build",
-    "deploy": "vercel -prod",
-    "preherokudeploy": "git add .",
-    "herokudeploy": "git commit -m 'Add react app'",
-    "postherokudeploy": "git push heroku main",
+    "deploy": "vercel --prod",
+
     "docker:build": "docker image build . -t thinkful-ed/zid-fe-project-pomodoro-timer-01-qualified",
     "docker:run": "docker run --rm -it -p 3000:3000 thinkful-ed/zid-fe-project-pomodoro-timer-01-qualified",
     "docker:stop": "docker stop $(docker ps -q)",
