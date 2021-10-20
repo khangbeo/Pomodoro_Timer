@@ -1,7 +1,7 @@
 # Pomodoro Timer
 
 ## Basic Info
-I made a Pomodor timer app based on the Pomodoro Technique. The app allows users to set work intervals separated by short breaks. When the timer starts, all buttons are disabled except for the pause and stop button. The use can increase the work and break time by 5 minute increments. Additionally, a separate component displays the time remaining along with a progress bar to help keep track of time.
+I made a Pomodoro timer app based on the Pomodoro Technique. The app allows users to set work intervals separated by short breaks. When the timer starts, all buttons are disabled except for the pause and stop button. The use can increase the work and break time by 5 minute increments. Additionally, a separate component displays the time remaining along with a progress bar to help keep track of time.
 
 The project was intended to be used for practicing the Pomodoro technique.
 
