@@ -1,0 +1,90 @@
+.card {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border: none;
+}
+
+.card:hover {
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
+    background: rgba(255, 255, 255, 1);
+}
+
+.card-header {
+    border-bottom: none;
+    padding: 1.25rem;
+    text-align: center;
+}
+
+.card-header h2 {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+.display-4 {
+    font-weight: 700;
+    font-size: 3.5rem;
+    margin-bottom: 0;
+    background: linear-gradient(45deg, #2c3e50, #3498db);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.progress {
+    border-radius: 1rem;
+    overflow: hidden;
+    height: 25px !important;
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.progress-bar {
+    transition: width 0.5s ease;
+}
+
+.progress-text {
+    position: absolute;
+    right: 0;
+    bottom: -2rem;
+    font-size: 0.875rem;
+    color: #6c757d;
+    font-weight: 500;
+}
+
+.alert {
+    margin: 1.5rem 0;
+    border-radius: 0.5rem;
+    border: none;
+    background-color: rgba(255, 193, 7, 0.15);
+    color: #856404;
+}
+
+/* Pulse animation for paused state */
+@keyframes pulse {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+.alert-warning {
+    animation: pulse 2s infinite;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.session-icon {
+    margin-right: 0.5rem;
+}

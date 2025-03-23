@@ -1,0 +1,102 @@
+.task-list-container {
+    margin-top: 2rem;
+    padding: 1.5rem;
+    background: var(--bg-secondary);
+    border-radius: 0.5rem;
+    box-shadow: var(--card-shadow);
+}
+
+.task-list-title {
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.task-form .input-group {
+    box-shadow: none;
+}
+
+.task-form .form-control {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+.task-form .form-control:focus {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border-color: var(--focus-color);
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.task-list .list-group-item {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+    border-radius: 0.25rem;
+    transition: all 0.2s ease;
+}
+
+.task-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex: 1;
+}
+
+.task-checkbox {
+    width: 1.25rem;
+    height: 1.25rem;
+    cursor: pointer;
+}
+
+.completed {
+    text-decoration: line-through;
+    color: var(--text-secondary);
+}
+
+.btn-danger {
+    background-color: #dc3545;
+    border: none;
+    padding: 0.375rem 0.75rem;
+}
+
+.btn-danger:hover {
+    background-color: #c82333;
+}
+
+/* Custom checkbox styles */
+.task-checkbox {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--border-color);
+    border-radius: 4px;
+    outline: none;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+.task-checkbox:checked {
+    background-color: var(--focus-color);
+    border-color: var(--focus-color);
+}
+
+.task-checkbox:checked::after {
+    content: "✓";
+    position: absolute;
+    color: white;
+    font-size: 14px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+/* Hover effects */
+.list-group-item:hover {
+    border-color: var(--focus-color);
+}

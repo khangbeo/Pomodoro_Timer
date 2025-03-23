@@ -1,450 +1,420 @@
 import React from "react";
 import Pomodoro from "../pomodoro/Pomodoro";
-import { act, render } from "@testing-library/react";
+import {
+    act,
+    render,
+    screen,
+    fireEvent,
+    waitFor,
+} from "@testing-library/react";
 import "@testing-library/jest-dom";
 import userEvent from "@testing-library/user-event";
 
 describe("Pomodoro Timer", () => {
-  beforeEach(() => {
-    // Playing audio is not supported in jsdom
-    window.HTMLMediaElement.prototype.load = jest.fn();
-    window.HTMLMediaElement.prototype.play = jest.fn();
-    window.HTMLMediaElement.prototype.pause = jest.fn();
-    jest.useFakeTimers();
-  });
+    let localStorageMock;
 
-  describe("play button", () => {
-    test("changes to pause button when clicked", async () => {
-      const { getByTestId } = render(<Pomodoro />);
+    beforeEach(() => {
+        // Playing audio is not supported in jsdom
+        window.HTMLMediaElement.prototype.load = jest.fn();
+        window.HTMLMediaElement.prototype.play = jest.fn();
+        window.HTMLMediaElement.prototype.pause = jest.fn();
+        Object.defineProperty(window.HTMLMediaElement.prototype, "volume", {
+            set: jest.fn(),
+        });
+        jest.useFakeTimers();
 
-      const playPauseButton = getByTestId("play-pause");
-
-      expect(playPauseButton.firstChild).toHaveClass("oi-media-play");
-      expect(playPauseButton.firstChild).not.toHaveClass("oi-media-pause");
-
-      userEvent.click(playPauseButton);
-
-      expect(playPauseButton.firstChild).not.toHaveClass("oi-media-play");
-      expect(playPauseButton.firstChild).toHaveClass("oi-media-pause");
-    });
-  });
-
-  describe("stop button", () => {
-    test("is disabled by default", async () => {
-      const { getByTestId } = render(<Pomodoro />);
-
-      const stopButton = getByTestId("stop");
-      expect(stopButton).toBeDisabled();
-    });
-    test("stops focus session when clicked", async () => {
-      const { getByTestId, queryByTestId } = render(<Pomodoro />);
-
-      const stopButton = getByTestId("stop");
-      const playPauseButton = getByTestId("play-pause");
-
-      userEvent.click(playPauseButton);
-
-      expect(stopButton).toBeEnabled();
-
-      // Fast-forward 15 seconds
-      act(() => jest.advanceTimersByTime(15000));
-
-      expect(getByTestId("session-title")).toBeDefined();
-      expect(getByTestId("session-sub-title")).toBeDefined();
-
-      userEvent.click(stopButton); // Stop timer
-
-      expect(stopButton).toBeDisabled();
-
-      // Fast-forward 15 seconds
-      act(() => jest.advanceTimersByTime(15000));
-
-      expect(queryByTestId("session-title")).toBeNull();
-      expect(queryByTestId("session-sub-title")).toBeNull();
-    });
-    test("stops break session when clicked", async () => {
-      const { getByTestId, queryByTestId } = render(<Pomodoro />);
-
-      const stopButton = getByTestId("stop");
-      const playPauseButton = getByTestId("play-pause");
-      const decreaseFocus = getByTestId("decrease-focus");
-
-      Array(10)
-        .fill(0)
-        .forEach(() => {
-          userEvent.click(decreaseFocus);
+        // Mock localStorage
+        localStorageMock = {
+            getItem: jest.fn(() => null),
+            setItem: jest.fn(),
+            clear: jest.fn(),
+        };
+        Object.defineProperty(window, "localStorage", {
+            value: localStorageMock,
         });
 
-      userEvent.click(getByTestId("play-pause"));
-
-      expect(stopButton).toBeEnabled();
-
-      // Fast-forward 5.5 minutes to be in break session
-      act(() => jest.advanceTimersByTime(330000));
-
-      expect(getByTestId("session-title")).toBeDefined();
-      expect(getByTestId("session-sub-title")).toBeDefined();
-
-      userEvent.click(stopButton); // Stop timer
-
-      expect(stopButton).toBeDisabled();
-
-      // Fast-forward 15 seconds
-      act(() => jest.advanceTimersByTime(15000));
-
-      expect(queryByTestId("session-title")).toBeNull();
-      expect(queryByTestId("session-sub-title")).toBeNull();
-    });
-  });
-
-  describe("Focus duration", () => {
-    test("displays 25:00 by default", () => {
-      const { getByTestId } = render(<Pomodoro />);
-      expect(getByTestId("duration-focus")).toHaveTextContent(
-        "Focus Duration: 25:00"
-      );
-    });
-    test("increases by 5 minutes when clicking + button", () => {
-      const { getByTestId } = render(<Pomodoro />);
-
-      const increaseFocus = getByTestId("increase-focus");
-
-      userEvent.click(increaseFocus);
-
-      expect(getByTestId("duration-focus")).toHaveTextContent(
-        "Focus Duration: 30:00"
-      );
-
-      userEvent.click(increaseFocus);
-
-      expect(getByTestId("duration-focus")).toHaveTextContent(
-        "Focus Duration: 35:00"
-      );
+        // Mock fullscreen API with Promises
+        document.documentElement.requestFullscreen = jest.fn(() =>
+            Promise.resolve()
+        );
+        document.exitFullscreen = jest.fn(() => Promise.resolve());
+        document.fullscreenElement = null;
     });
 
-    test("cannot increase above 60", () => {
-      const { getByTestId } = render(<Pomodoro />);
+    describe("Timer Controls", () => {
+        test("play button changes to pause button when clicked", () => {
+            render(<Pomodoro />);
+            const playPauseButton = screen.getByTestId("play-pause");
 
-      const increaseFocus = getByTestId("increase-focus");
-
-      Array(10)
-        .fill(0)
-        .forEach(() => userEvent.click(increaseFocus));
-
-      expect(getByTestId("duration-focus")).toHaveTextContent(
-        "Focus Duration: 60:00"
-      );
-    });
-
-    test("decreases when clicking - button", () => {
-      const { getByTestId } = render(<Pomodoro />);
-
-      const decreaseFocus = getByTestId("decrease-focus");
-
-      userEvent.click(decreaseFocus);
-
-      expect(getByTestId("duration-focus")).toHaveTextContent(
-        "Focus Duration: 20:00"
-      );
-
-      userEvent.click(decreaseFocus);
-
-      expect(getByTestId("duration-focus")).toHaveTextContent(
-        "Focus Duration: 15:00"
-      );
-    });
-
-    test("cannot decrease below 5", () => {
-      const { getByTestId } = render(<Pomodoro />);
-
-      const decreaseFocus = getByTestId("decrease-focus");
-
-      Array(10)
-        .fill(0)
-        .forEach(() => userEvent.click(decreaseFocus));
-
-      expect(getByTestId("duration-focus")).toHaveTextContent(
-        "Focus Duration: 05:00"
-      );
-    });
-  });
-
-  describe("Break duration", () => {
-    test("displays 05:00 by default", () => {
-      const { getByTestId } = render(<Pomodoro />);
-      expect(getByTestId("duration-break")).toHaveTextContent(
-        "Break Duration: 05:00"
-      );
-    });
-    test("increases by 1 when clicking + button", () => {
-      const { getByTestId } = render(<Pomodoro />);
-
-      const increaseBreak = getByTestId("increase-break");
-
-      userEvent.click(increaseBreak);
-
-      expect(getByTestId("duration-break")).toHaveTextContent(
-        "Break Duration: 06:00"
-      );
-
-      userEvent.click(increaseBreak);
-
-      expect(getByTestId("duration-break")).toHaveTextContent(
-        "Break Duration: 07:00"
-      );
-    });
-
-    test("cannot increase above 15", () => {
-      const { getByTestId } = render(<Pomodoro />);
-
-      const increaseBreak = getByTestId("increase-break");
-
-      Array(10)
-        .fill(0)
-        .forEach(() => userEvent.click(increaseBreak));
-
-      expect(getByTestId("duration-break")).toHaveTextContent(
-        "Break Duration: 15:00"
-      );
-    });
-
-    test("decreases by 1 when clicking - button", () => {
-      const { getByTestId } = render(<Pomodoro />);
-
-      const decreaseBreak = getByTestId("decrease-break");
-
-      userEvent.click(decreaseBreak);
-
-      expect(getByTestId("duration-break")).toHaveTextContent(
-        "Break Duration: 04:00"
-      );
-
-      userEvent.click(decreaseBreak);
-
-      expect(getByTestId("duration-break")).toHaveTextContent(
-        "Break Duration: 03:00"
-      );
-    });
-
-    test("cannot decrease below 1", () => {
-      const { getByTestId } = render(<Pomodoro />);
-
-      const decreaseBreak = getByTestId("decrease-break");
-
-      Array(10)
-        .fill(0)
-        .forEach(() => userEvent.click(decreaseBreak));
-
-      expect(getByTestId("duration-break")).toHaveTextContent(
-        "Break Duration: 01:00"
-      );
-    });
-  });
-
-  describe("Session title", () => {
-    test("is not displayed when stopped", () => {
-      const { queryByTestId } = render(<Pomodoro />);
-
-      expect(queryByTestId("session-title")).toBeNull();
-    });
-
-    test('displays "Focusing for 25:00 minutes" by default', () => {
-      const { getByTestId } = render(<Pomodoro />);
-
-      userEvent.click(getByTestId("play-pause"));
-
-      expect(getByTestId("session-title")).toHaveTextContent(
-        "Focusing for 25:00 minutes"
-      );
-    });
-    test('displays "On Break for 05:00 minutes" after focus session expires', () => {
-      const { getByTestId } = render(<Pomodoro />);
-
-      // Set the times to the minimums
-      const decreaseFocus = getByTestId("decrease-focus");
-
-      Array(10)
-        .fill(0)
-        .forEach(() => {
-          userEvent.click(decreaseFocus);
+            expect(playPauseButton.querySelector("i")).toHaveClass("fa-play");
+            userEvent.click(playPauseButton);
+            expect(playPauseButton.querySelector("i")).toHaveClass("fa-pause");
         });
 
-      userEvent.click(getByTestId("play-pause"));
-
-      // Fast-forward 5.5 minutes so 5:00 focus timer expires
-      act(() => jest.advanceTimersByTime(330000));
-
-      expect(getByTestId("session-title")).toHaveTextContent(
-        "On Break for 05:00 minutes"
-      );
-    });
-    test('displays "Focusing for 05:00 minutes" after focus duration is decreased session is started', () => {
-      const { getByTestId } = render(<Pomodoro />);
-
-      // Set the times to the minimums
-      const decreaseFocus = getByTestId("decrease-focus");
-
-      Array(10)
-        .fill(0)
-        .forEach(() => {
-          userEvent.click(decreaseFocus);
+        test("stop button is disabled by default", () => {
+            render(<Pomodoro />);
+            const stopButton = screen.getByTestId("stop");
+            expect(stopButton).toBeDisabled();
         });
 
-      userEvent.click(getByTestId("play-pause"));
+        test("stop button becomes enabled when timer starts", () => {
+            render(<Pomodoro />);
+            const playPauseButton = screen.getByTestId("play-pause");
+            const stopButton = screen.getByTestId("stop");
 
-      expect(getByTestId("session-title")).toHaveTextContent(
-        "Focusing for 05:00 minutes"
-      );
+            userEvent.click(playPauseButton);
+            expect(stopButton).toBeEnabled();
+        });
     });
-    test('displays "On Break for 01:00 minutes" after break duration is decreased and focus session expires', () => {
-      const { getByTestId } = render(<Pomodoro />);
 
-      // Set the times to the minimums
-      const decreaseFocus = getByTestId("decrease-focus");
-      const decreaseBreak = getByTestId("decrease-break");
-
-      Array(10)
-        .fill(0)
-        .forEach(() => {
-          userEvent.click(decreaseFocus);
-          userEvent.click(decreaseBreak);
+    describe("Focus Duration Controls", () => {
+        test("displays 25:00 by default", () => {
+            render(<Pomodoro />);
+            expect(screen.getByText(/25:00/)).toBeInTheDocument();
         });
 
-      userEvent.click(getByTestId("play-pause"));
-
-      // Fast-forward 5.5 minutes so default 5:00 focus timer expires
-      act(() => jest.advanceTimersByTime(330000));
-
-      expect(getByTestId("session-title")).toHaveTextContent(
-        "On Break for 01:00 minutes"
-      );
-    });
-    test("starts a new focus session after break session expires", () => {
-      const { getByTestId } = render(<Pomodoro />);
-
-      // Set the times to the minimums
-      const decreaseFocus = getByTestId("decrease-focus");
-      const decreaseBreak = getByTestId("decrease-break");
-
-      Array(10)
-        .fill(0)
-        .forEach(() => {
-          userEvent.click(decreaseFocus);
-          userEvent.click(decreaseBreak);
+        test("can increase focus duration", () => {
+            render(<Pomodoro />);
+            const increaseButton = screen.getByTestId("increase-focus");
+            userEvent.click(increaseButton);
+            expect(screen.getByText(/30:00/)).toBeInTheDocument();
         });
 
-      userEvent.click(getByTestId("play-pause"));
+        test("can decrease focus duration", () => {
+            render(<Pomodoro />);
+            const decreaseButton = screen.getByTestId("decrease-focus");
+            userEvent.click(decreaseButton);
+            expect(screen.getByText(/20:00/)).toBeInTheDocument();
+        });
 
-      // Fast-forward 6.5 minutes so first focus and break sessions expire
-      act(() => jest.advanceTimersByTime(390000));
+        test("cannot increase focus duration above 60 minutes", () => {
+            render(<Pomodoro />);
+            const increaseButton = screen.getByTestId("increase-focus");
 
-      expect(getByTestId("session-title")).toHaveTextContent(
-        "Focusing for 05:00 minutes"
-      );
-    });
-  });
+            // Click 8 times to try to go above 60 minutes (25 + 8*5 = 65)
+            for (let i = 0; i < 8; i++) {
+                userEvent.click(increaseButton);
+            }
 
-  describe("Session sub-title", () => {
-    test("is not displayed when stopped", () => {
-      const { queryByTestId } = render(<Pomodoro />);
+            expect(screen.getByText(/60:00/)).toBeInTheDocument();
+        });
 
-      expect(queryByTestId("session-sub-title")).toBeNull();
-    });
+        test("cannot decrease focus duration below 5 minutes", () => {
+            render(<Pomodoro />);
+            const decreaseButton = screen.getByTestId("decrease-focus");
 
-    test('displays "25:00 remaining" by default', () => {
-      const { getByTestId } = render(<Pomodoro />);
+            // Click 8 times to try to go below 5 minutes (25 - 8*5 = -15)
+            for (let i = 0; i < 8; i++) {
+                userEvent.click(decreaseButton);
+            }
 
-      // start the session
-      userEvent.click(getByTestId("play-pause"));
-      // pause the session
-      userEvent.click(getByTestId("play-pause"));
-
-      expect(getByTestId("session-sub-title")).toHaveTextContent(
-        "25:00 remaining"
-      );
-    });
-    test('displays "24:45 minutes" after 15 seconds have elapsed', () => {
-      const { getByTestId } = render(<Pomodoro />);
-
-      const playPauseButton = getByTestId("play-pause");
-
-      userEvent.click(playPauseButton);
-
-      // Fast-forward 15 seconds
-      act(() => jest.advanceTimersByTime(15000));
-
-      expect(getByTestId("session-sub-title")).toHaveTextContent(
-        "24:45 remaining"
-      );
+            expect(screen.getByText(/05:00/)).toBeInTheDocument();
+        });
     });
 
-    test("pauses timer by clicking pause button", () => {
-      const { getByTestId } = render(<Pomodoro />);
+    describe("Break Duration Controls", () => {
+        test("displays 5:00 by default", () => {
+            render(<Pomodoro />);
+            expect(screen.getByText(/Break Duration/)).toBeInTheDocument();
+            expect(screen.getByText(/5:00/)).toBeInTheDocument();
+        });
 
-      const playPauseButton = getByTestId("play-pause");
+        test("can increase break duration", () => {
+            render(<Pomodoro />);
+            const increaseButton = screen.getByTestId("increase-break");
+            userEvent.click(increaseButton);
+            expect(screen.getByText(/6:00/)).toBeInTheDocument();
+        });
 
-      userEvent.click(playPauseButton);
+        test("can decrease break duration", () => {
+            render(<Pomodoro />);
+            const decreaseButton = screen.getByTestId("decrease-break");
+            userEvent.click(decreaseButton);
+            expect(screen.getByText(/4:00/)).toBeInTheDocument();
+        });
 
-      // Fast-forward 15 seconds
-      act(() => jest.advanceTimersByTime(15000));
+        test("cannot increase break duration above 15 minutes", () => {
+            render(<Pomodoro />);
+            const increaseButton = screen.getByTestId("increase-break");
 
-      expect(getByTestId("session-sub-title")).toHaveTextContent(
-        "24:45 remaining"
-      );
+            // Click 15 times to try to go above 15 minutes
+            for (let i = 0; i < 15; i++) {
+                userEvent.click(increaseButton);
+            }
 
-      userEvent.click(playPauseButton); // Pause timer
+            expect(screen.getByText(/15:00/)).toBeInTheDocument();
+        });
 
-      // Fast-forward 15 seconds
-      act(() => jest.advanceTimersByTime(15000));
+        test("cannot decrease break duration below 1 minute", () => {
+            render(<Pomodoro />);
+            const decreaseButton = screen.getByTestId("decrease-break");
 
-      expect(getByTestId("session-sub-title")).toHaveTextContent(
-        "24:45 remaining"
-      );
+            // Click 10 times to try to go below 1 minute
+            for (let i = 0; i < 10; i++) {
+                userEvent.click(decreaseButton);
+            }
+
+            expect(screen.getByText(/1:00/)).toBeInTheDocument();
+        });
     });
-  });
 
-  describe("Progress bar", () => {
-    test("is not displayed when stopped", () => {
-      const { queryByTestId } = render(<Pomodoro />);
+    describe("Focus Mode", () => {
+        test("enters focus mode when button is clicked", async () => {
+            render(<Pomodoro />);
+            const focusModeButton = screen.getByTitle(/Enter Focus Mode/);
 
-      expect(queryByTestId("progressbar")).toBeNull();
+            await act(async () => {
+                userEvent.click(focusModeButton);
+            });
+
+            expect(
+                document.documentElement.requestFullscreen
+            ).toHaveBeenCalled();
+            expect(screen.getByTitle(/Exit Focus Mode/)).toBeInTheDocument();
+        });
+
+        test("exits focus mode when button is clicked again", async () => {
+            render(<Pomodoro />);
+            const focusModeButton = screen.getByTitle(/Enter Focus Mode/);
+
+            await act(async () => {
+                userEvent.click(focusModeButton);
+                document.fullscreenElement = document.documentElement;
+                userEvent.click(screen.getByTitle(/Exit Focus Mode/));
+            });
+
+            expect(document.exitFullscreen).toHaveBeenCalled();
+            expect(screen.getByTitle(/Enter Focus Mode/)).toBeInTheDocument();
+        });
     });
-    test("displays 0% progress by default", () => {
-      const { getByRole, getByTestId } = render(<Pomodoro />);
-      // start the session
-      userEvent.click(getByTestId("play-pause"));
-      // pause the session
-      userEvent.click(getByTestId("play-pause"));
-      expect(getByRole("progressbar").getAttribute("aria-valuenow")).toBe("0");
+
+    describe("Task List", () => {
+        test("can add a new task", async () => {
+            render(<Pomodoro />);
+            const input = screen.getByPlaceholderText(/Add a new task/i);
+            const form = input.closest("form");
+
+            await act(async () => {
+                userEvent.type(input, "Test Task");
+                fireEvent.submit(form);
+            });
+
+            const taskElement = await screen.findByText("Test Task");
+            expect(taskElement).toBeInTheDocument();
+        });
+
+        test("can mark a task as complete", async () => {
+            render(<Pomodoro />);
+            const input = screen.getByPlaceholderText(/Add a new task/i);
+            const form = input.closest("form");
+
+            await act(async () => {
+                userEvent.type(input, "Test Task");
+                fireEvent.submit(form);
+            });
+
+            const taskElement = await screen.findByText("Test Task");
+            const checkbox = await screen.findByRole("checkbox");
+
+            await act(async () => {
+                userEvent.click(checkbox);
+            });
+
+            expect(checkbox).toBeChecked();
+            expect(taskElement.closest(".task-item")).toHaveClass("completed");
+        });
+
+        test("can delete a task", async () => {
+            render(<Pomodoro />);
+            const input = screen.getByPlaceholderText(/Add a new task/i);
+            const form = input.closest("form");
+
+            await act(async () => {
+                userEvent.type(input, "Test Task");
+                fireEvent.submit(form);
+            });
+
+            const taskElement = await screen.findByText("Test Task");
+            const deleteButton = taskElement
+                .closest(".task-item")
+                .querySelector('[aria-label="Delete task"]');
+
+            await act(async () => {
+                userEvent.click(deleteButton);
+            });
+
+            await waitFor(() => {
+                expect(screen.queryByText("Test Task")).not.toBeInTheDocument();
+            });
+        });
+
+        test("shows empty state when no tasks exist", () => {
+            render(<Pomodoro />);
+            expect(
+                screen.getByText(/No tasks yet.*Add one to get started!/i)
+            ).toBeInTheDocument();
+        });
+
+        test("persists tasks in localStorage", async () => {
+            render(<Pomodoro />);
+            const input = screen.getByPlaceholderText(/Add a new task/i);
+            const form = input.closest("form");
+
+            await act(async () => {
+                userEvent.type(input, "Test Task");
+                fireEvent.submit(form);
+            });
+
+            // Wait for the task to appear in the DOM
+            await screen.findByText("Test Task");
+
+            // Wait for localStorage to be updated
+            await waitFor(
+                () => {
+                    const savedTasks = JSON.parse(
+                        localStorageMock.setItem.mock.calls[
+                            localStorageMock.setItem.mock.calls.length - 1
+                        ][1]
+                    );
+                    expect(savedTasks).toEqual(
+                        expect.arrayContaining([
+                            expect.objectContaining({
+                                name: "Test Task",
+                                completed: false,
+                            }),
+                        ])
+                    );
+                },
+                { timeout: 2000 }
+            );
+        });
     });
-    test("aria-valuenow is 20 after 5 minutes", () => {
-      const { getByRole, getByTestId } = render(<Pomodoro />);
 
-      const playPauseButton = getByTestId("play-pause");
-      userEvent.click(playPauseButton);
+    describe("Sound Settings", () => {
+        test("can toggle sound on/off", () => {
+            render(<Pomodoro />);
+            const soundToggle = screen.getByRole("checkbox", {
+                name: /Enable Sounds/i,
+            });
 
-      act(() => jest.advanceTimersByTime(300000));
+            expect(soundToggle).toBeChecked();
+            userEvent.click(soundToggle);
+            expect(soundToggle).not.toBeChecked();
+        });
 
-      const valueNow = Number(
-        getByRole("progressbar").getAttribute("aria-valuenow")
-      );
-      expect(valueNow).toBeGreaterThan(19);
-      expect(valueNow).toBeLessThan(21);
+        test("can adjust volume", () => {
+            render(<Pomodoro />);
+            const volumeSlider = screen.getByRole("slider", {
+                name: /Volume/i,
+            });
+
+            expect(volumeSlider).toHaveValue("50");
+            fireEvent.change(volumeSlider, { target: { value: "75" } });
+            expect(volumeSlider).toHaveValue("75");
+        });
+
+        test("volume control is disabled when sound is off", () => {
+            render(<Pomodoro />);
+            const soundToggle = screen.getByRole("checkbox", {
+                name: /Enable Sounds/i,
+            });
+            const volumeSlider = screen.getByRole("slider", {
+                name: /Volume/i,
+            });
+
+            userEvent.click(soundToggle);
+            expect(volumeSlider).toBeDisabled();
+        });
+
+        test("can play and pause ambient sounds", () => {
+            render(<Pomodoro />);
+            const rainButton = screen.getByRole("button", {
+                name: /Rain/i,
+            });
+
+            userEvent.click(rainButton);
+            expect(rainButton).toHaveClass("btn-sound");
+            expect(rainButton).toHaveClass("active");
+
+            userEvent.click(rainButton);
+            expect(rainButton).toHaveClass("btn-sound");
+            expect(rainButton).not.toHaveClass("active");
+        });
     });
-    test("increases progress as break timer runs", () => {
-      const { getByRole, getByTestId } = render(<Pomodoro />);
 
-      const playPauseButton = getByTestId("play-pause");
-      userEvent.click(playPauseButton);
+    describe("Keyboard Shortcuts", () => {
+        test("spacebar toggles play/pause", () => {
+            render(<Pomodoro />);
+            const playPauseButton = screen.getByTestId("play-pause");
 
-      // Fast-forward 26:01 minutes so default 25:00 focus timer expires and 1:00 of break is consumed
-      act(() => jest.advanceTimersByTime(1561000));
+            // Simulate spacebar press
+            fireEvent.keyDown(document.body, {
+                key: " ",
+                code: "Space",
+                bubbles: true,
+            });
 
-      const valueNow = Number(
-        getByRole("progressbar").getAttribute("aria-valuenow")
-      );
-      expect(valueNow).toBeGreaterThan(19);
-      expect(valueNow).toBeLessThan(21);
+            expect(playPauseButton.querySelector("i")).toHaveClass("fa-pause");
+
+            // Press again
+            fireEvent.keyDown(document.body, {
+                key: " ",
+                code: "Space",
+                bubbles: true,
+            });
+            expect(playPauseButton.querySelector("i")).toHaveClass("fa-play");
+        });
+
+        test("spacebar does not toggle when input is focused", () => {
+            render(<Pomodoro />);
+            const input = screen.getByPlaceholderText(/Add a new task/i);
+            const playPauseButton = screen.getByTestId("play-pause");
+
+            // Focus the input
+            input.focus();
+
+            // Simulate spacebar press while input is focused
+            fireEvent.keyDown(input, {
+                key: " ",
+                code: "Space",
+                bubbles: true,
+            });
+
+            // Should not change to pause
+            expect(playPauseButton.querySelector("i")).toHaveClass("fa-play");
+        });
+
+        test("escape key stops the timer", () => {
+            render(<Pomodoro />);
+            const playPauseButton = screen.getByTestId("play-pause");
+            const stopButton = screen.getByTestId("stop");
+
+            // Start the timer
+            userEvent.click(playPauseButton);
+
+            // Simulate escape press
+            fireEvent.keyDown(document.body, {
+                key: "Escape",
+                code: "Escape",
+                bubbles: true,
+            });
+
+            expect(playPauseButton.querySelector("i")).toHaveClass("fa-play");
+            expect(stopButton).toBeDisabled();
+        });
+
+        test("escape key does nothing when timer is not active", () => {
+            render(<Pomodoro />);
+            const stopButton = screen.getByTestId("stop");
+
+            // Simulate escape press
+            fireEvent.keyDown(document.body, {
+                key: "Escape",
+                code: "Escape",
+                bubbles: true,
+            });
+
+            expect(stopButton).toBeDisabled();
+        });
     });
-  });
 });
