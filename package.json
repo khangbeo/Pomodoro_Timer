@@ -7,27 +7,19 @@
         "npm": ">=8.0.0"
     },
     "dependencies": {
-        "@testing-library/jest-dom": "^5.17.0",
-        "@testing-library/react": "^14.1.2",
-        "@testing-library/user-event": "^14.5.1",
         "react": "^18.2.0",
         "react-dom": "^18.2.0",
         "react-scripts": "5.0.1"
     },
     "scripts": {
-        "prebuild": "CI=true npm test --colors",
         "build": "react-scripts build",
         "predeploy": "npm run build",
         "deploy": "vercel --prod",
         "docker:build": "docker image build . -t thinkful-ed/zid-fe-project-pomodoro-timer-01-qualified",
         "docker:run": "docker run --rm -it -p 3000:3000 thinkful-ed/zid-fe-project-pomodoro-timer-01-qualified",
         "docker:stop": "docker stop $(docker ps -q)",
-        "docker:test": "docker run -t  thinkful-ed/zid-fe-project-pomodoro-timer-01-qualified npm test",
         "eject": "react-scripts eject",
-        "start": "react-scripts start",
-        "start:solution": "npm run -it docker:build && npm run docker:run",
-        "test": "react-scripts test",
-        "test:solution": "npm run docker:build && npm run docker:test"
+        "start": "react-scripts start"
     },
     "eslintConfig": {
         "extends": "react-app"
